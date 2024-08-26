@@ -48,7 +48,7 @@ const Grid: React.FC = () => {
     const moves: Move[] = [];
     const row = Math.floor(position / 5);
     const col = position % 5;
-
+  
     const addMove = (newRow: number, newCol: number, kills: number[] = []) => {
       if (newRow >= 0 && newRow < 5 && newCol >= 0 && newCol < 5) {
         const newPos = newRow * 5 + newCol;
@@ -58,7 +58,7 @@ const Grid: React.FC = () => {
         }
       }
     };
-
+  
     const addMoveWithKill = (startRow: number, startCol: number, rowStep: number, colStep: number, maxSteps: number) => {
       let kills: number[] = [];
       for (let i = 1; i <= maxSteps; i++) {
@@ -80,7 +80,19 @@ const Grid: React.FC = () => {
         }
       }
     };
-
+  
+    const addHero3Move = (newRow: number, newCol: number) => {
+      if (newRow >= 0 && newRow < 5 && newCol >= 0 && newCol < 5) {
+        const newPos = newRow * 5 + newCol;
+        const occupyingPiece = pieces.find(p => p.position === newPos);
+        if (!occupyingPiece) {
+          addMove(newRow, newCol);
+        } else if (occupyingPiece.player !== player) {
+          addMove(newRow, newCol, [newPos]);
+        }
+      }
+    };
+  
     switch (type) {
       case 'Pawn':
         addMove(row - 1, col);
@@ -102,18 +114,18 @@ const Grid: React.FC = () => {
         break;
       case 'Hero3':
         // Vertical movements
-        addMove(row - 2, col - 1);
-        addMove(row - 2, col + 1);
-        addMove(row + 2, col - 1);
-        addMove(row + 2, col + 1);
+        addHero3Move(row - 2, col - 1);
+        addHero3Move(row - 2, col + 1);
+        addHero3Move(row + 2, col - 1);
+        addHero3Move(row + 2, col + 1);
         // Horizontal movements
-        addMove(row - 1, col - 2);
-        addMove(row + 1, col - 2);
-        addMove(row - 1, col + 2);
-        addMove(row + 1, col + 2);
+        addHero3Move(row - 1, col - 2);
+        addHero3Move(row + 1, col - 2);
+        addHero3Move(row - 1, col + 2);
+        addHero3Move(row + 1, col + 2);
         break;
     }
-
+  
     return moves;
   };
 
