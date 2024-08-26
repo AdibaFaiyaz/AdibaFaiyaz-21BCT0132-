@@ -32,13 +32,14 @@ app.prepare().then(() => {
               { id: 'A-P2', player: 'A', type: 'Pawn', position: 1 },
               { id: 'A-H1', player: 'A', type: 'Hero1', position: 2 },
               { id: 'A-H2', player: 'A', type: 'Hero2', position: 3 },
-              { id: 'A-P3', player: 'A', type: 'Pawn', position: 4 },
+              { id: 'A-H3', player: 'A', type: 'Hero3', position: 4 },
               { id: 'B-P1', player: 'B', type: 'Pawn', position: 20 },
               { id: 'B-P2', player: 'B', type: 'Pawn', position: 21 },
               { id: 'B-H1', player: 'B', type: 'Hero1', position: 22 },
               { id: 'B-H2', player: 'B', type: 'Hero2', position: 23 },
-              { id: 'B-P3', player: 'B', type: 'Pawn', position: 24 },
-            ]
+              { id: 'B-H3', player: 'B', type: 'Hero3', position: 24 },
+            ],
+            winner: null
           };
           games.set(data.gameId, game);
         }
@@ -48,7 +49,7 @@ app.prepare().then(() => {
           ws.send(JSON.stringify({ type: 'joined', player: game.players.length === 1 ? 'A' : 'B' }));
          
           if (game.players.length === 2) {
-            game.players.forEach((player, index) => {
+            game.players.forEach((player) => {
               player.send(JSON.stringify({ type: 'start', currentPlayer: game.currentPlayer, pieces: game.pieces }));
             });
           }
@@ -60,10 +61,24 @@ app.prepare().then(() => {
         if (game) {
           game.pieces = data.pieces;
           game.currentPlayer = data.currentPlayer;
+
+          // Check for game over condition
+          const remainingA = game.pieces.filter(p => p.player === 'A').length;
+          const remainingB = game.pieces.filter(p => p.player === 'B').length;
+
+          if (remainingA === 0) {
+            game.winner = 'B';
+          } else if (remainingB === 0) {
+            game.winner = 'A';
+          }
+
           game.players.forEach(player => {
-            if (player !== ws) {
-              player.send(JSON.stringify({ type: 'update', currentPlayer: game.currentPlayer, pieces: game.pieces }));
-            }
+            player.send(JSON.stringify({
+              type: 'update',
+              currentPlayer: game.currentPlayer,
+              pieces: game.pieces,
+              winner: game.winner
+            }));
           });
         }
       }

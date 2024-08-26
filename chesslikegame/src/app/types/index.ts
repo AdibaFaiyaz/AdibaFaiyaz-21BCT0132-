@@ -1,5 +1,5 @@
 export type Player = 'A' | 'B';
-export type PieceType = 'Pawn' | 'Hero1' | 'Hero2';
+export type PieceType = 'Pawn' | 'Hero1' | 'Hero2' | 'Hero3';
 
 export interface Piece {
   id: string;
