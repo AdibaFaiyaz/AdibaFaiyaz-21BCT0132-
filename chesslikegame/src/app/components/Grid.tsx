@@ -1,7 +1,7 @@
 "use client"
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
-import { Player,Piece, Move } from '../types';
+import { Player, Move, Piece } from '../types';
 
 const Grid: React.FC = () => {
   const { id } = useParams();
@@ -12,6 +12,7 @@ const Grid: React.FC = () => {
   const [possibleMoves, setPossibleMoves] = useState<Move[]>([]);
   const [pieces, setPieces] = useState<Piece[]>([]);
   const [winner, setWinner] = useState<Player | null>(null);
+  const [isSpectator, setIsSpectator] = useState<boolean>(false);
 
   useEffect(() => {
     const socket = new WebSocket(`ws://${window.location.hostname}:3000`);
@@ -25,6 +26,11 @@ const Grid: React.FC = () => {
       const data = JSON.parse(event.data);
       if (data.type === 'joined') {
         setPlayerSide(data.player);
+        setIsSpectator(false);
+      } else if (data.type === 'spectate') {
+        setIsSpectator(true);
+        setCurrentPlayer(data.currentPlayer);
+        setPieces(data.pieces);
       } else if (data.type === 'start' || data.type === 'update') {
         setCurrentPlayer(data.currentPlayer);
         setPieces(data.pieces);
@@ -32,9 +38,12 @@ const Grid: React.FC = () => {
           setWinner(data.winner);
         }
       } else if (data.type === 'full') {
-        alert('Game is full');
+        alert('Game is full, you are now spectating');
+        setIsSpectator(true);
       } else if (data.type === 'opponent_left') {
         alert('Opponent left the game');
+      } else if (data.type === 'player_left') {
+        alert('A player left the game');
       }
     };
 
@@ -130,14 +139,14 @@ const Grid: React.FC = () => {
   };
 
   const handlePieceClick = (piece: Piece) => {
-    if (piece.player === currentPlayer && piece.player === playerSide) {
+    if (!isSpectator && piece.player === currentPlayer && piece.player === playerSide) {
       setSelectedPiece(piece);
       setPossibleMoves(calculatePossibleMoves(piece));
     }
   };
 
   const handleMoveClick = (move: Move) => {
-    if (selectedPiece && ws) {
+    if (!isSpectator && selectedPiece && ws) {
       const newPieces = pieces.map(p =>
         p.id === selectedPiece.id ? { ...p, position: move.position } :
         (move.kills.includes(p.position) ? { ...p, position: -1 } : p)
@@ -182,7 +191,7 @@ const Grid: React.FC = () => {
       <div className="bg-white p-8 rounded-lg text-black text-center">
         <h2 className="text-3xl mb-4">Game Over</h2>
         <p className="text-xl mb-4">
-          {winner === playerSide ? 'You Won!' : 'You Lost!'}
+          {isSpectator ? `Player ${winner} Won!` : (winner === playerSide ? 'You Won!' : 'You Lost!')}
         </p>
         <button
           className="bg-blue-500 text-white px-4 py-2 rounded"
@@ -197,7 +206,9 @@ const Grid: React.FC = () => {
   return (
     <div className="flex flex-col items-center justify-center bg-gray-900 text-white min-h-screen">
       <div className="mb-4 text-xl">Current Player: {currentPlayer}</div>
-      <div className="mb-4 text-xl">Your Side: {playerSide || 'Waiting for opponent'}</div>
+      <div className="mb-4 text-xl">
+        {isSpectator ? 'Spectating' : `Your Side: ${playerSide || 'Waiting for opponent'}`}
+      </div>
       <div className="grid grid-cols-5 gap-1 mb-4">
         {[...Array(25)].map((_, i) => renderCell(i))}
       </div>

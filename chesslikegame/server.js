@@ -26,6 +26,7 @@ app.prepare().then(() => {
         if (!game) {
           game = {
             players: [],
+            spectators: [],
             currentPlayer: 'A',
             pieces: [
               { id: 'A-P1', player: 'A', type: 'Pawn', position: 0 },
@@ -52,9 +53,13 @@ app.prepare().then(() => {
             game.players.forEach((player) => {
               player.send(JSON.stringify({ type: 'start', currentPlayer: game.currentPlayer, pieces: game.pieces }));
             });
+            game.spectators.forEach((spectator) => {
+              spectator.send(JSON.stringify({ type: 'start', currentPlayer: game.currentPlayer, pieces: game.pieces }));
+            });
           }
         } else {
-          ws.send(JSON.stringify({ type: 'full' }));
+          game.spectators.push(ws);
+          ws.send(JSON.stringify({ type: 'spectate', currentPlayer: game.currentPlayer, pieces: game.pieces }));
         }
       } else if (data.type === 'move') {
         const game = games.get(data.gameId);
@@ -80,19 +85,36 @@ app.prepare().then(() => {
               winner: game.winner
             }));
           });
+          game.spectators.forEach(spectator => {
+            spectator.send(JSON.stringify({
+              type: 'update',
+              currentPlayer: game.currentPlayer,
+              pieces: game.pieces,
+              winner: game.winner
+            }));
+          });
         }
       }
     });
 
     ws.on('close', () => {
       for (let [gameId, game] of games) {
-        const index = game.players.indexOf(ws);
-        if (index !== -1) {
-          game.players.splice(index, 1);
-          if (game.players.length === 0) {
+        const playerIndex = game.players.indexOf(ws);
+        if (playerIndex !== -1) {
+          game.players.splice(playerIndex, 1);
+          if (game.players.length === 0 && game.spectators.length === 0) {
             games.delete(gameId);
           } else {
-            game.players[0].send(JSON.stringify({ type: 'opponent_left' }));
+            game.players.forEach(player => player.send(JSON.stringify({ type: 'opponent_left' })));
+            game.spectators.forEach(spectator => spectator.send(JSON.stringify({ type: 'player_left' })));
+          }
+          break;
+        }
+        const spectatorIndex = game.spectators.indexOf(ws);
+        if (spectatorIndex !== -1) {
+          game.spectators.splice(spectatorIndex, 1);
+          if (game.players.length === 0 && game.spectators.length === 0) {
+            games.delete(gameId);
           }
           break;
         }
