@@ -16,7 +16,7 @@ app.prepare().then(() => {
   const wss = new WebSocket.Server({ server });
 
   const games = new Map();
-
+  // Checks whether a websocket connection has been established or not
   wss.on('connection', (ws) => {
     ws.on('message', (message) => {
       const data = JSON.parse(message);
@@ -48,7 +48,7 @@ app.prepare().then(() => {
         if (game.players.length < 2) {
           game.players.push(ws);
           ws.send(JSON.stringify({ type: 'joined', player: game.players.length === 1 ? 'A' : 'B' }));
-         
+          // Game starts when two players have joined
           if (game.players.length === 2) {
             game.players.forEach((player) => {
               player.send(JSON.stringify({ type: 'start', currentPlayer: game.currentPlayer, pieces: game.pieces }));
@@ -58,6 +58,7 @@ app.prepare().then(() => {
             });
           }
         } else {
+          // If mnore than two people have joined the game, then the surplus client's are treated as spectators
           game.spectators.push(ws);
           ws.send(JSON.stringify({ type: 'spectate', currentPlayer: game.currentPlayer, pieces: game.pieces }));
         }
@@ -86,6 +87,7 @@ app.prepare().then(() => {
             }));
           });
           game.spectators.forEach(spectator => {
+            // Sens data to the spectator client's, the state of the match ongoing
             spectator.send(JSON.stringify({
               type: 'update',
               currentPlayer: game.currentPlayer,
@@ -97,6 +99,7 @@ app.prepare().then(() => {
       }
     });
 
+    // Broadcasts message if an oppoenent has left the match
     ws.on('close', () => {
       for (let [gameId, game] of games) {
         const playerIndex = game.players.indexOf(ws);
