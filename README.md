@@ -14,6 +14,7 @@
 <img src="chess.png" alt="landing page" style="padding: 30px">
 <img src="client.png" alt="landing page" style="padding: 30px">
 <img src="client2.png" alt="landing page" style="padding: 30px">
+
 ## Getting Started:
 1. Install Packages and Modules
 ```shell
